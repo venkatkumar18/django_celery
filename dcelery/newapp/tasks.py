@@ -1,7 +1,7 @@
 from celery import shared_task
 import time
 
-@shared_task
+@shared_task(task_default_rate_limit='1/m')
 def task1(queue='celery'):
     time.sleep(3)
     return "\nWelcomce to task1\n\n"

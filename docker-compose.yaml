@@ -2,6 +2,20 @@ version: '3.8'
 
 services:
 
+  flower:
+    image: mher/flower
+    ports:
+      - 5555:5555
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+     - 5672:5672
+     - 15672:15672
+
   redis:
     image: redis:7.0.11-alpine
     container_name: redis-1
@@ -10,41 +24,42 @@ services:
     container_name: django
     build:
       context: ./dcelery
-    command: python3 manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./dcelery:/usr/src/app/
     ports:
       - 8001:8000
-    volumes:
-      - ./dcelery:/usr/src/app
     environment:
       - DEBUG=1
-      - SECRET_KEY=fgkdfgl34jlk34n53
+      - SECRET_KEY=0930jd30j9jd09j09j109fj01j9f
       - ALLOWED_HOSTS=localhost,127.0.0.1
     depends_on:
       - redis
-
-  celery1:
+  
+  celery:
     container_name: celery1
     build:
       context: ./dcelery
-    command: celery --app=dcelery worker -l INFO -Q celery,celery:1,celery:2,celery:3
+    command: celery --app=dcelery worker --hostname=CeleryWorker1@%h -l INFO -Q tasks
     volumes:
-      - ./dcelery:/usr/src/app
+      - ./dcelery:/usr/src/app/
     environment:
       - DEBUG=1
-      - SECRET_KEY=fgkdfgl34jlk34n53
+      - SECRET_KEY=0930jd30j9jd09j09j109fj01j9f
       - ALLOWED_HOSTS=localhost,127.0.0.1
     depends_on:
       - redis
       - django
+      - rabbitmq
   
   # celery2:
   #   container_name: celery2
   #   build:
   #     context: ./celeryworker
   #     dockerfile: Dockerfile
-  #   command: celery -A celerytask worker -l INFO -Q queue2
+  #   command: celery -A celerytask worker --loglevel=INFO -Q queue2
   #   volumes:
-  #     - ./celeryworker:/usr/src/app
+  #     - ./celeryworker:/usr/src/app/
   #   depends_on:
   #     - redis
   #     - django
